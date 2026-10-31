@@ -47,85 +47,19 @@
                         <div class="card-body">
                             {% for choice in question.choice_set.all %}
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input"
-                                           name="choice_{{ choice.id }}" id="choice_{{ choice.id }}"
-
-mayur@MAYURESH UCRT64 ~
-$ cd ~/final-cloud-app-with-database
-ls onlinecourse/templates/onlinecourse
-git status
-git log --oneline -5
-course_detail_bootstrap.html  exam_result_bootstrap.html  user_registration_bootstrap.html
-course_list_bootstrap.html    user_login_bootstrap.html
-On branch master
-Your branch is up to date with 'origin/master'.
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-        modified:   db.sqlite3
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-        static/media/course_images/Screenshot_2026-10-31_004459.png
-
-no changes added to commit (use "git add" and/or "git commit -a")
-d41c8bb (HEAD -> master, origin/master, origin/HEAD) Add admin classes
-b9b9db7 Add Question, Choice and Submission models
-540ca17 Merge pull request #24 from lavskillup/patch-3
-114d022 Merge pull request #23 from lavskillup/patch-2
-12ddc0d Create runtime.txt
-
-mayur@MAYURESH UCRT64 ~/final-cloud-app-with-database (master)
-$
-$ cd ~/final-cloud-app-with-database
-
-sed -i '1i from django.shortcuts import get_object_or_404, redirect, render\nfrom django.http import HttpResponseRedirect\nfrom django.urls import reverse\nfrom .models import Course, Enrollment, Question, Submission' onlinecourse/views.py
-
-cat >> onlinecourse/views.py <<'EOF'
-
-
-def get_selected_choice_ids(request):
-    """Collect the ids of the choices selected in the exam form."""
-    selected_ids = []
-    for key in request.POST:
-        if key.startswith('choice'):
-            selected_ids.append(int(request.POST[key]))
-    return selected_ids
-
-
-def submit(request, course_id):
-    """Save the learner's answers and redirect to the exam result."""
-    if not request.user.is_authenticated:
-        return redirect('onlinecourse:login')
-    course = get_object_or_404(Course, pk=course_id)
-    enrollment = get_object_or_404(Enrollment, user=request.user, course=course)
-    submission = Submission.objects.create(enrollment=enrollment)
-    submission.choices.set(get_selected_choice_ids(request))
-    return HttpResponseRedirect(
-        reverse('onlinecourse:show_exam_result', args=(course.id, submission.id)))
-
-
-def show_exam_result(request, course_id, submission_id):
-    """Calculate the score for a submission and show the result."""
-    course = get_object_or_404(Course, pk=course_id)
-    submission = get_object_or_404(Submission, pk=submission_id)
-    selected_ids = list(submission.choices.values_list('id', flat=True))
-    questions = Question.objects.filter(lesson__course=course)
-    total_score = 0
-    max_score = 0
-    for question in questions:
-        max_score += question.grade
-        if question.is_get_score(selected_ids):
-            total_score += question.grade
-    percent = round(total_score * 100 / max_score) if max_score else 0
-    context = {
-        'course': course,
-        'questions': questions,
-        'selected_ids': selected_ids,
-        'grade': total_score,
-        'max_score': max_score,
-        'percent': percent,
-        'passed': percent >= 80,
-    }
-    return render(request, 'onlinecourse/exam_result_bootstrap.html', context)
+                                    <input type="checkbox" class="form-check-input" name="choice_{{ choice.id }}" id="choice_{{ choice.id }}" value="{{ choice.id }}">
+                                    <label class="form-check-label" for="choice_{{ choice.id }}">{{ choice.choice_text }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    {% else %}
+        <p>Please log in to enroll and take the exam.</p>
+    {% endif %}
+</div>
+</body>
+</html>
