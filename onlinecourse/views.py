@@ -1,3 +1,7 @@
+from django.shortcuts import get_object_or_404, redirect, render
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+from .models import Course, Enrollment, Question, Submission
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 # <HINT> Import any new Models here
@@ -134,3 +138,49 @@ def enroll(request, course_id):
 
 
 
+
+
+def get_selected_choice_ids(request):
+    """Collect the ids of the choices selected in the exam form."""
+    selected_ids = []
+    for key in request.POST:
+        if key.startswith('choice'):
+            selected_ids.append(int(request.POST[key]))
+    return selected_ids
+
+
+def submit(request, course_id):
+    """Save the learner's answers and redirect to the exam result."""
+    if not request.user.is_authenticated:
+        return redirect('onlinecourse:login')
+    course = get_object_or_404(Course, pk=course_id)
+    enrollment = get_object_or_404(Enrollment, user=request.user, course=course)
+    submission = Submission.objects.create(enrollment=enrollment)
+    submission.choices.set(get_selected_choice_ids(request))
+    return HttpResponseRedirect(
+        reverse('onlinecourse:show_exam_result', args=(course.id, submission.id)))
+
+
+def show_exam_result(request, course_id, submission_id):
+    """Calculate the score for a submission and show the result."""
+    course = get_object_or_404(Course, pk=course_id)
+    submission = get_object_or_404(Submission, pk=submission_id)
+    selected_ids = list(submission.choices.values_list('id', flat=True))
+    questions = Question.objects.filter(lesson__course=course)
+    total_score = 0
+    max_score = 0
+    for question in questions:
+        max_score += question.grade
+        if question.is_get_score(selected_ids):
+            total_score += question.grade
+    percent = round(total_score * 100 / max_score) if max_score else 0
+    context = {
+        'course': course,
+        'questions': questions,
+        'selected_ids': selected_ids,
+        'grade': total_score,
+        'max_score': max_score,
+        'percent': percent,
+        'passed': percent >= 80,
+    }
+    return render(request, 'onlinecourse/exam_result_bootstrap.html', context)
